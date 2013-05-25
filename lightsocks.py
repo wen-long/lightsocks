@@ -109,11 +109,6 @@ if __name__ == '__main__':
     os.chdir(os.path.dirname(__file__) or '.')
     print 'lightsocks v1.1'
     sys.path.append('./shadowsocks')
-    try:
-        import encrypt
-    except ImportError:
-        logging.error('shadowsocks.encrypt not found. Please run git submodule init; git submodule update')
-        sys.exit(1)
 
     with open('config.json', 'rb') as f:
         config = json.load(f)
@@ -127,6 +122,11 @@ if __name__ == '__main__':
 
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S', filemode='a+')
+    try:
+        import encrypt
+    except ImportError:
+        logging.error('shadowsocks.encrypt not found. Please run: git submodule init; git submodule update')
+        sys.exit(1)
 
     header = '\x03' + chr(len(TARGET_SERVER)) + str(TARGET_SERVER) + struct.pack('>H', TARGET_PORT)
 
