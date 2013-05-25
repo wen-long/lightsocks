@@ -1,0 +1,3 @@
+[submodule "shadowsocks"]
+	path = shadowsocks
+	url = https://github.com/clowwindy/shadowsocks.git

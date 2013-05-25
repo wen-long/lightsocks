@@ -23,8 +23,9 @@
 import sys
 
 try:
-    import gevent, gevent.monkey
-    gevent.monkey.patch_all(dns=gevent.version_info[0]>=1)
+    import gevent
+    import gevent.monkey
+    gevent.monkey.patch_all(dns=gevent.version_info[0] >= 1)
 except ImportError:
     gevent = None
     print >>sys.stderr, 'warning: gevent not found, using threading instead'
@@ -33,22 +34,10 @@ import socket
 import select
 import SocketServer
 import struct
-import string
-import hashlib
 import os
 import json
 import logging
-import getopt
 
-def get_table(key):
-    m = hashlib.md5()
-    m.update(key)
-    s = m.digest()
-    (a, b) = struct.unpack('<QQ', s)
-    table = [c for c in string.maketrans('', '')]
-    for i in xrange(1, 1024):
-        table.sort(lambda x, y: int(a % (ord(x) + i) - a % (ord(y) + i)))
-    return table
 
 def send_all(sock, data):
     bytes_sent = 0
@@ -59,6 +48,7 @@ def send_all(sock, data):
         bytes_sent += r
         if bytes_sent == len(data):
             return bytes_sent
+
 
 class ThreadingTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     allow_reuse_address = True
@@ -71,18 +61,18 @@ class Socks5Server(SocketServer.StreamRequestHandler):
             while True:
                 r, w, e = select.select(fdset, [], [])
                 if sock in r:
-                    data = sock.recv(4096)
+                    data = self.encrypt(sock.recv(4096))
                     if len(data) <= 0:
                         break
-                    result = send_all(remote, self.encrypt(data))
+                    result = send_all(remote, data)
                     if result < len(data):
                         raise Exception('failed to send all data')
 
                 if remote in r:
-                    data = remote.recv(4096)
+                    data = self.decrypt(remote.recv(4096))
                     if len(data) <= 0:
                         break
-                    result = send_all(sock, self.decrypt(data))
+                    result = send_all(sock, data)
                     if result < len(data):
                         raise Exception('failed to send all data')
         finally:
@@ -90,10 +80,10 @@ class Socks5Server(SocketServer.StreamRequestHandler):
             remote.close()
 
     def encrypt(self, data):
-        return data.translate(encrypt_table)
+        return self.encryptor.encrypt(data)
 
     def decrypt(self, data):
-        return data.translate(decrypt_table)
+        return self.encryptor.decrypt(data)
 
     def send_encrypt(self, sock, data):
         sock.send(self.encrypt(data))
@@ -102,6 +92,7 @@ class Socks5Server(SocketServer.StreamRequestHandler):
         try:
             try:
                 logging.info('connecting')
+                self.encryptor = encrypt.Encryptor(KEY, METHOD)
                 remote = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 remote.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 remote.connect((SERVER, REMOTE_PORT))
@@ -116,6 +107,13 @@ class Socks5Server(SocketServer.StreamRequestHandler):
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(__file__) or '.')
+    print 'lightsocks v1.1'
+    sys.path.append('./shadowsocks')
+    try:
+        import encrypt
+    except ImportError:
+        logging.error('shadowsocks.encrypt not found. Please run git submodule init; git submodule update')
+        sys.exit(1)
 
     with open('config.json', 'rb') as f:
         config = json.load(f)
@@ -123,20 +121,19 @@ if __name__ == '__main__':
     REMOTE_PORT = config['server_port']
     PORT = config['local_port']
     KEY = config['password']
+    METHOD = config['method']
     TARGET_SERVER = config['target_server']
     TARGET_PORT = config['target_port']
 
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S', filemode='a+')
+                        datefmt='%Y-%m-%d %H:%M:%S', filemode='a+')
 
     header = '\x03' + chr(len(TARGET_SERVER)) + str(TARGET_SERVER) + struct.pack('>H', TARGET_PORT)
 
-    encrypt_table = ''.join(get_table(KEY))
-    decrypt_table = string.maketrans(encrypt_table, string.maketrans('', ''))
+    encrypt.init_table(KEY, METHOD)
     try:
         server = ThreadingTCPServer(('', PORT), Socks5Server)
-        logging.info("starting server at port %d ..." % PORT)
+        logging.info("starting lightsocks at port %d ..." % PORT)
         server.serve_forever()
     except socket.error, e:
         logging.error(e)
-

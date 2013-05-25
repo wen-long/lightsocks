@@ -3,6 +3,8 @@ lightsocks
 
 We walk in the dark, to serve the light.
 
+Current version: 1.1
+
 [shadowsocks](https://github.com/clowwindy/shadowsocks) is a lightweight tunnel proxy which can help you get through firewalls
 
 lightsocks is a shadowsocks client serving as a transparent proxy. Once set up, you can
@@ -12,16 +14,23 @@ usage
 -----------
 
 First, set up [shadowsocks](https://github.com/clowwindy/shadowsocks) server
-on your VPS.
+sn your VPS.
 
 Then edit `config.json`, change the following values:
 
     server          your shadowsocks server ip or hostname
     server_port     your shadowsocks server port
     password        your shadowsocks password
+    method          encryption method, "bf-cfb", "aes-256-cfb", "des-cfb", "rc4", etc. Default is table
     local_port      local port
     target_server   the server you want to visit, for example, github.com
     target_port     the server port you want to visit, for example, 22
+
+Clone lightsocks on your client machine. Don't forget to install submodules.
+
+    git clone --recurse-submodules https://github.com/clowwindy/lightsocks.git
+
+Edit `config.json`.
 
 Run `python lightsocks.py` on your client machine.
 
