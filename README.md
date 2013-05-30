@@ -14,7 +14,7 @@ usage
 -----------
 
 First, set up [shadowsocks](https://github.com/clowwindy/shadowsocks) server
-sn your VPS.
+on your VPS.
 
 Then edit `config.json`, change the following values:
 
