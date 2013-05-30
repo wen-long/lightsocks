@@ -16,6 +16,10 @@ usage
 First, set up [shadowsocks](https://github.com/clowwindy/shadowsocks) server
 on your VPS.
 
+Clone lightsocks on your client machine. Don't forget to install submodules.
+
+    git clone --recurse-submodules https://github.com/clowwindy/lightsocks.git
+    
 Then edit `config.json`, change the following values:
 
     server          your shadowsocks server ip or hostname
@@ -25,12 +29,6 @@ Then edit `config.json`, change the following values:
     local_port      local port
     target_server   the server you want to visit, for example, github.com
     target_port     the server port you want to visit, for example, 22
-
-Clone lightsocks on your client machine. Don't forget to install submodules.
-
-    git clone --recurse-submodules https://github.com/clowwindy/lightsocks.git
-
-Edit `config.json`.
 
 Run `python lightsocks.py` on your client machine.
 
